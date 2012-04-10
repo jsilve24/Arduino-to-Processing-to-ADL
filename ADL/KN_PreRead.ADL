@@ -1,0 +1,15 @@
+Sub Main
+'	RetVal = Shell("C:\Documents and Settings\Lecomte Lab\Desktop\Justin Silverman\CODE\SerialCallResponse-Thermistor\Processing\exe_SericalCallResponse_Thermistor\application.windows32\SerialCallResponse_Thermistor.exe",1)
+    'aaa
+	RetVal = Shell("C:\Documents and Settings\Lecomte Lab\Desktop\Justin Silverman\processing-2.0a5-windows\processing-2.0a5\processing.exe",1)
+
+    Dim ans As String
+    ans = "X"
+    Debug.Print Clipboard$()
+    Clipboard ans
+    
+    
+End Sub
+
+
+
