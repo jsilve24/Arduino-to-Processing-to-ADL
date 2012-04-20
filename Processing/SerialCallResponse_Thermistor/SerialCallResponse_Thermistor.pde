@@ -1,4 +1,5 @@
 //Add Error of Temp to output
+//Double Check Calibration of Thermistor
 
 // Modified from http://arduino.cc/en/Tutorial/SerialCallResponse
 /*
@@ -60,6 +61,16 @@ boolean gotName = false;      // Has a valid filename been entered?
 
 float temp;                  // the temperature converted from voltage
                               // measured in celcius
+                              
+/*
+ Global Constants
+*/
+
+final double x3 = -8.8608;
+final double x2 = 85.7174;
+final double x1 = -290.8986;
+final double x0 = 409.0631;
+
 
 // controlP5 declarations
 ControlP5 cp5;
@@ -86,7 +97,7 @@ public void setup() {
   //  String portName = Serial.list()[0];
   // On Windows:
   //  String portName = Serial.list()[1];
-  String portName = Serial.list()[0]; // Pick Serial Port to comunicate over (From Above List printed to screen)
+  String portName = Serial.list()[1]; // Pick Serial Port to comunicate over (From Above List printed to screen)
   myPort = new Serial(this, portName, 9600); // Take this port and define the communication scheme. 
                                              // This scheme is an object "myPort" 
 // Should Get Filename from ADL
@@ -112,8 +123,8 @@ void draw() {
   if (clipped.equals("X")) {   // If Signal "X" recieved from ADL (Through Clipboard)
     // cp.copyString("HandShake!!!"); // For Debugging Purposes
     /* Begin Writing Temp Data to File */
-    file.println(volt2temp(volt));        // If Start Signal "X" has been recieved write 
-                               // Value of volt (from arduino) to File
+    file.println(volt2temp(volt) + "\t" + volt);        // If Start Signal "X" has been recieved write 
+                                                           // Value of temp and volt (from arduino) to File
     myPort.write('B');         // Send signal (To Arduino) to turn on light
   } 
   else if (clipped.equals("Y")) {
@@ -121,6 +132,7 @@ void draw() {
     file.close();                // Finishes the file
     myPort.write('Z');           // Send signal (To Arduino) to turn off light
 // Add some notification so we know this is not happening by accident
+    delay(500);
     myPort.stop();            // Stop Serial Communication to Arduino
     exit();                    // Exit this Application
   }
@@ -190,9 +202,9 @@ void serialEvent(Serial myport) {
 
 
 /****  CUSTOM FUNCTIONS  ****/
-public float volt2temp(float v){
-  float temp;
-  temp = -8.8608 * pow(v,3) + 85.7174 * pow(v,2) - 290.8986 * v + 409.0631;
+public double volt2temp(float v){
+  double temp;
+  temp = x3 * pow(v,3) + x2 * pow(v,2) + x1 * v + x0;
   return temp;
 }
 
@@ -202,8 +214,22 @@ void textA(String theValue) {
   println("### got an event from textA : "+theValue);
   fileName = theValue;
   gotName = true;
-  file = createWriter(fileName + ".dat");          // Create file to write to write to at defined
+  file = createWriter("C:\\Documents and Settings\\Lecomte Lab\\Desktop\\Justin Silverman\\DATA\\" +fileName + ".dat");          // Create file to write to write to at defined
                                              // location (relative to sketch folder) 
+  
+ // WRITE HEADER INFO
+ file.println("# temp = x3 * pow(v,3) + x2 * pow(v,2) + x1 * v + x0");
+ file.println("# x0 = " + x0 );
+ file.println("# x1 = " + x1 );
+ file.println("# x2 = " + x2 );
+ file.println("# x3 = " + x3 );
+ file.println("# temperature measurements taken approximately every 300ms");
+ file.println("# temperature measurements given in units of degrees celcius");
+ file.println("#");
+ file.println("#");
+ file.println("# DATA");
+ file.println("# Temp \t Voltage");
+ file.println("# Celcius \t Volts");
 }
 
 
