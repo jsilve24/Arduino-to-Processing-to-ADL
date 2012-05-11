@@ -13,7 +13,7 @@
 // Any Byte will Estabilish Contact and Request next Temp Reading
 // 'B' is Turn on Light
 // 'Z' is Turn off Light
-// '!' is Error
+// '!' is Error -- Currently Unused
  
 const int SENSOR = 0;
 const int SWITCH = 13;
@@ -88,5 +88,3 @@ void establishContact() {
     delay(300);
   }
 }
-
-
