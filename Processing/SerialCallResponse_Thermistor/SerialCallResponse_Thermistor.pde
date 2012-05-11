@@ -59,8 +59,11 @@ PrintWriter file;
 String fileName;              // Filename to save temperature data to
 boolean gotName = false;      // Has a valid filename been entered?
 
-float temp;                  // the temperature converted from voltage
+float temp;                   // the temperature converted from voltage
                               // measured in celcius
+int intAveTemp;                // number of temperature readings to average during
+                              // calibration of thermistor
+
                               
 /*
  Global Constants
@@ -79,20 +82,20 @@ Textlabel myTextLabelA;
 /****  BEGIN SETUP/DRAW  ****/
 
 public void setup() {
-  size(400, 400);            // Display Window size
-  background(bgcolor);       // Set Background Color for Display Window
+  size(400, 400);                    // Display Window size
+  background(bgcolor);               // Set Background Color for Display Window
   font = loadFont("AdobeHeitiStd-Regular-48.vlw"); // See Above listed Font 
-  inFont = createFont("arial",20); // See Above listed Font
+  inFont = createFont("arial",20);   // See Above listed Font
+  
+  // create gui
   cp5 = new ControlP5(this); 
+  
+  // add text box
   cp5.addTextfield("textA", 10, 10, 300, 40)
-     .setFont(inFont)  // Prompt User for File Name to save temperature data to
-     .setAutoClear(false); // Do not clear the screen after entering text.
-  //Add File Extension Text Label
-    textFont(inFont,20);
-    fill(0);
-    text(".dat",315,30);
+     .setFont(inFont)               // Prompt User for File Name to save temperature data to
+     .setAutoClear(false);          // Do not clear the screen after entering text.
 
-  println(Serial.list());    // Print a list of the serial ports, for debugging purposes:
+  println(Serial.list());          // Print a list of the serial ports, for debugging purposes:
   // On Mac:
   //  String portName = Serial.list()[0];
   // On Windows:
@@ -104,12 +107,21 @@ public void setup() {
   cp.copyString("Not X");                    // Replace contents of Clipboard with "Not X"
 }
 
+
+
 void draw() { 
+  /* Draw Graphics */  
+  background (bgcolor); //Needed otherwise each loop just draws ontop of itself. 
+  
+  //Add File Extension Text Label
+  textFont(inFont,20);
+  fill(0);
+  text(".dat",315,30);
+  
   if (gotName == false) {
     delay(50);
   }
   else{  
-  //cp5.setColorBackground(color(255));
   /* Print Voltage to Window */
   textFont(font, 72);  
   fill(0);
@@ -118,26 +130,26 @@ void draw() {
   text(voltVal + " V", width/2, 200);
 
   /* Clipboard Operations */
-  clipped = cp.pasteString();  // Get contents of Clipboard and store them in Clipped
-  println(clipped);            // Print Contents of Clipboard to screen (For Debugging)
-  if (clipped.equals("X")) {   // If Signal "X" recieved from ADL (Through Clipboard)
-    // cp.copyString("HandShake!!!"); // For Debugging Purposes
+  clipped = cp.pasteString();            // Get contents of Clipboard and store them in Clipped
+  println(clipped);                      // Print Contents of Clipboard to screen (For Debugging)
+  if (clipped.equals("X")) {             // If Signal "X" recieved from ADL (Through Clipboard)
+    // cp.copyString("HandShake!!!");    // For Debugging Purposes
     /* Begin Writing Temp Data to File */
-    file.println(volt2temp(volt) + "\t" + volt);        // If Start Signal "X" has been recieved write 
-                                                           // Value of temp and volt (from arduino) to File
-    myPort.write('B');         // Send signal (To Arduino) to turn on light
+    file.println(volt2temp(volt) + "\t" + volt);     // If Start Signal "X" has been recieved write 
+                                                     // Value of temp and volt (from arduino) to File
+    myPort.write('B');                   // Send signal (To Arduino) to turn on light
   } 
   else if (clipped.equals("Y")) {
-    file.flush();                // Writes the remaining data to the file
-    file.close();                // Finishes the file
-    myPort.write('Z');           // Send signal (To Arduino) to turn off light
+    file.flush();                      // Writes the remaining data to the file
+    file.close();                      // Finishes the file
+    myPort.write('Z');                 // Send signal (To Arduino) to turn off light
 // Add some notification so we know this is not happening by accident
     delay(500);
-    myPort.stop();            // Stop Serial Communication to Arduino
-    exit();                    // Exit this Application
+    myPort.stop();                      // Stop Serial Communication to Arduino
+    exit();                             // Exit this Application
   }
   else {
-    delay(300);                // Give it 0.3s and then test clipboard again.
+    delay(300);                         // Give it 0.3s and then test clipboard again.
   }
   }
 }
@@ -145,7 +157,7 @@ void draw() {
 /****  BEGIN SERIALEVENT()  ****/
 
 void serialEvent(Serial myport) {
-  int inByte = myPort.read();      // read a byte from the serial port
+  int inByte = myPort.read();          // read a byte from the serial port
   // if this is the first byte received, and it's an A,
   // clear the serial buffer and note that you've
   // had first contact from the microcontroller. 
@@ -153,9 +165,9 @@ void serialEvent(Serial myport) {
 
   if (firstContact == false) {
     if (inByte == 'A') { 
-      myPort.clear();               // clear the serial buffer
-      firstContact = true;          // you've had first contact from the microcontroller
-      myPort.write('A');            // ask for more
+      myPort.clear();                 // clear the serial buffer
+      firstContact = true;            // you've had first contact from the microcontroller
+      myPort.write('A');              // ask for more
     }
   } 
   else {
@@ -163,14 +175,14 @@ void serialEvent(Serial myport) {
     serialInArray[serialCount] = inByte;
     serialCount++;
 
-    if (serialCount > 1) {           // if we have 2 byte:
-      val_high = serialInArray[0];   // The byte that was recieved first 
-                                     // is the first 8 bits of val
-      val_low = serialInArray[1];    // The byte that was recieved second
-                                     // is the second 8 bits of val
-      val = val_high << 8 | val_low; // Place the first 8 bits in val_high 
-                                     // before the last 8 bits in val_low
-                                     // to make val
+    if (serialCount > 1) {             // if we have 2 byte:
+      val_high = serialInArray[0];     // The byte that was recieved first 
+                                       // is the first 8 bits of val
+      val_low = serialInArray[1];      // The byte that was recieved second
+                                       // is the second 8 bits of val
+      val = val_high << 8 | val_low;   // Place the first 8 bits in val_high 
+                                       // before the last 8 bits in val_low
+                                       // to make val
       //println(int(val));             // For Debugging Purposes
       volt = mapDouble(val, 0, 1023, 0.00, 5.00); //Change the range of val from 0-1023
                                                   // to 0.00-5.00 to be a meaningful quantity (voltage)
@@ -179,10 +191,10 @@ void serialEvent(Serial myport) {
       float dataLength;
 
       dataLength = map(inByte, 0, 1023, 0, height);
-      stroke(127, 34, 255);           // draw this line
+      stroke(127, 34, 255);             // draw this line
       line(xpos, height, xpos, height - dataLength);
 
-      if (xpos >= width) {        // at the edge of the screen, go back to the beginning:
+      if (xpos >= width) {              // at the edge of the screen, go back to the beginning:
         xpos = 0;
         background(bgcolor); 
       } 
@@ -191,8 +203,8 @@ void serialEvent(Serial myport) {
         xpos = xpos+2;
       }
 
-      myPort.write('A');             // Send a capital A to request new sensor readings:   
-      serialCount = 0;               // Reset serialCount:
+      myPort.write('A');                // Send a capital A to request new sensor readings:   
+      serialCount = 0;                  // Reset serialCount:
     }
   }
 }
@@ -242,83 +254,3 @@ float mapDouble(float x, float in_min, float in_max, float out_min, float out_ma
   result = (x-in_min)*(out_max - out_min)/(in_max -in_min) +out_min;
   return result;
 }
-
-
-
-
-
-/****  CLIPBOARD CLASS  ****/
-
-// //////////////////
-// Clipboard class for Processing
-// by seltar, modified by adamohern
-// v 0115AO
-// only works with programs. applets require signing
-// From:
-// http://processing.org/discourse/beta/num_1274718629.html
-import java.awt.datatransfer.*;
-import java.awt.Toolkit; 
-
-ClipHelper cp = new ClipHelper();
-
-class ClipHelper {
-  Clipboard clipboard;
-
-  ClipHelper() {
-    getClipboard();
-  }
-
-  void getClipboard () {
-    // this is our simple thread that grabs the clipboard
-    Thread clipThread = new Thread() {
-      public void run() {
-        clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-      }
-    };
-
-    // start the thread as a daemon thread and wait for it to die
-    if (clipboard == null) {
-      try {
-        clipThread.setDaemon(true);
-        clipThread.start();
-        clipThread.join();
-      }  
-      catch (Exception e) {
-      }
-    }
-  }
-
-  void copyString (String data) {
-    copyTransferableObject(new StringSelection(data));
-  }
-
-  void copyTransferableObject (Transferable contents) {
-    getClipboard();
-    clipboard.setContents(contents, null);
-  }
-
-  String pasteString () {
-    String data = null;
-    try {
-      data = (String)pasteObject(DataFlavor.stringFlavor);
-    }  
-    catch (Exception e) {
-      System.err.println("Error getting String from clipboard: " + e);
-    }
-    return data;
-  }
-
-  Object pasteObject (DataFlavor flavor)  
-    throws UnsupportedFlavorException, IOException
-  {
-    Object obj = null;
-    getClipboard();
-
-    Transferable content = clipboard.getContents(null);
-    if (content != null)
-      obj = content.getTransferData(flavor);
-
-    return obj;
-  }
-}
-
