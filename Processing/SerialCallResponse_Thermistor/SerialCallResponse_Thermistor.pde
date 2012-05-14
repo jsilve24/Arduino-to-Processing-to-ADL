@@ -81,6 +81,10 @@ final double x1 = -290.8986;
 final double x0 = 409.0631;
 
 
+// Identify Operating System
+String OSname = System.getProperty("os.name");
+int serialport = 0;  // What serial port should be used
+
 // controlP5 declarations
 ControlP5 cp5;
 Textlabel myTextLabelA;
@@ -116,7 +120,14 @@ public void setup() {
   //  String portName = Serial.list()[0];
   // On Windows:
   //  String portName = Serial.list()[1];
-  String portName = Serial.list()[1]; // Pick Serial Port to comunicate over (From Above List printed to screen)
+  if (OSname.equals("Mac OS X")) {
+    serialport = 0;
+  }
+  else if (OSname.equals("Windows XP") || OSname.equals("Windows 7")) {
+    serialport = 1;
+  }
+
+  String portName = Serial.list()[serialport]; // Pick Serial Port to comunicate over (From Above List printed to screen)
   myPort = new Serial(this, portName, 9600); // Take this port and define the communication scheme. 
   // This scheme is an object "myPort" 
   // Should Get Filename from ADL
@@ -129,16 +140,16 @@ public void setup() {
 /**********************/
 
 public void draw() {
-  
+
   if (gotName == false) {
     background (bgcolor); //Needed otherwise each loop just draws ontop of itself.
     //delay(50);
   } 
-  
+
   if (ask == true) {
     println("in ask==true");
     background (0);
-    
+
     /* Print message to Window */
     textFont(fontMessage, 18);  
     fill (255);
@@ -154,11 +165,11 @@ public void draw() {
     textAlign(CENTER);
     voltVal = nf(volt, 1, 3);
     text(voltVal + " V", width/2, 200);
-    
-     if (calibrationMode == true) {
-       //Average Thermometer Readings...
-     }
-    
+
+    if (calibrationMode == true) {
+      //Average Thermometer Readings...
+    }
+
     if (calibrationMode == false) {
       clipboardCheck();
 
@@ -303,7 +314,8 @@ public void calibrate(int theValue) {
     cp5.controller("textA").setVisible(false);
     cp5.controller("calibrate").setVisible(false);
     ask = true;
-  } else{
+  } 
+  else {
     enterCalibrationMode();
   }
 }
