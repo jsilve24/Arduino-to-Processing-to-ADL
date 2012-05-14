@@ -69,7 +69,10 @@ int intAveTemp;                // number of temperature readings to average duri
 
 boolean calibConfirm = false; // are you sure you want to enter calibration mode?
 boolean calibAnswer = false;  // has the user answered the question and given a value to calibConfirm?
-boolean ask = false;           // do we need to prompt the user for input?
+boolean ask = false;          // do we need to prompt the user for input?
+
+ArrayList<Integer> graph;             // create an ArrayList to handle graph values and easily implement a queue. 
+int dataLength;             // Temporarily hold graph point
 
 /*
  Global Constants
@@ -79,6 +82,9 @@ final double x3 = -8.8608;
 final double x2 = 85.7174;
 final double x1 = -290.8986;
 final double x0 = 409.0631;
+
+
+
 
 
 // Identify Operating System
@@ -132,6 +138,9 @@ public void setup() {
   // This scheme is an object "myPort" 
   // Should Get Filename from ADL
   cp.copyString("Not X");                    // Replace contents of Clipboard with "Not X"
+  
+  // Instantiate Linked list for Graph
+  graph = new ArrayList<Integer>(Collections.nCopies(200,0));
 }
 
 
@@ -165,18 +174,25 @@ public void draw() {
     textAlign(CENTER);
     voltVal = nf(volt, 1, 3);
     text(voltVal + " V", width/2, 200);
+    
+    
+    // Draw Graph (each line stored in ArrayList graph.
+    stroke(127, 34, 255);             // draw this line
+    for (int i = graph.size(); i>0; i--) {
+      line(i*2, height, i*2, height - graph.get(i - 1));
+    }
+  
 
     if (calibrationMode == true) {
       //Average Thermometer Readings...
     }
-
-    if (calibrationMode == false) {
+    else if (calibrationMode == false) {
       clipboardCheck();
 
       //Add File Extension Text Label
-      textFont(inFont, 20);
+      textFont(inFont, 25);
       fill(0);
-      text(".dat", 315, 30);
+      text(".dat", 334, 40);
     }
   }
 }
@@ -216,20 +232,11 @@ void serialEvent(Serial myport) {
       // to 0.00-5.00 to be a meaningful quantity (voltage)
 
       /*  Graph Voltage Measurement  */
-      float dataLength;
+      dataLength =(int) map(inByte, 0, 1023, 0, height);
 
-      dataLength = map(inByte, 0, 1023, 0, height);
-      stroke(127, 34, 255);             // draw this line
-      line(xpos, height, xpos, height - dataLength);
-
-      if (xpos >= width) {              // at the edge of the screen, go back to the beginning:
-        xpos = 0;
-        background(bgcolor);
-      } 
-      else {
-        // increment the horizontal position:
-        xpos = xpos+2;
-      }
+      graph.remove(0);
+      graph.add(dataLength);
+      
 
       myPort.write('A');                // Send a capital A to request new sensor readings:   
       serialCount = 0;                  // Reset serialCount:
