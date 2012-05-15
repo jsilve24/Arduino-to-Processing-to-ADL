@@ -8,23 +8,25 @@
  Then it waits for a byte in the serial port, and 
  sends three sensor values whenever it gets a byte in.
  */
- 
+
 // SERIAL COMMANDS
 // Any Byte will Estabilish Contact and Request next Temp Reading
 // 'B' is Turn on Light
 // 'Z' is Turn off Light
 // '!' is Error -- Currently Unused
- 
+
 const int SENSOR = 0;
 const int SWITCH = 13;
 
 boolean STOP = 0;  //STOP = 1 if Stop signal 'Z' has been received 
-                   //through Serial COM
+//through Serial COM
 
 int val = 0;              // stores the current state of SENSOR pin
 byte val_low = 0;          // stores low 8 bits of val
 byte val_high = 0;        // stores high 8 bits of val
-int inByte = 0;            // incoming serial byte
+int inByte = 0;           // incoming serial byte
+int numAve = 0;           // number of readings averaged together
+int ave[3];              // array to hold readings 
 
 // CUSTOM FUNCTIONS
 void lightOn() {
@@ -47,12 +49,12 @@ void restart() {
 
 // NESSESITIES
 void setup() {
- pinMode(SWITCH, OUTPUT);
- 
- // start serial port at 9600 bps:
- Serial.begin(9600); 
- establishContact();      // send a byte to establish
-                          // contact until receiver responds                     
+  pinMode(SWITCH, OUTPUT);
+
+  // start serial port at 9600 bps:
+  Serial.begin(9600); 
+  establishContact();      // send a byte to establish
+  // contact until receiver responds                     
 }
 
 void loop() {
@@ -68,16 +70,27 @@ void loop() {
       lightOff();
       STOP = 1;
       inByte = Serial.read();    // get next incomming byte to continue
-                                 // transmitting data over serial
+      // transmitting data over serial
     }
 
     val = analogRead(SENSOR);
-    val_high = highByte(val);
-    val_low = lowByte(val);
-    //Serial.println(int(val_high));
-    //Serial.print(int(val_low));  
-    Serial.write(val_high);
-    Serial.write(val_low);
+    ave[numAve] = val;
+    numAve++;
+    
+    if (numAve == 3) {
+      val = (ave[1]+ave[2]+ave[3])/3.0;
+      // Should I also send the standard deviation of these measurements?
+      // What about changing the number of measurements that are averaged?
+      numAve = 0;
+      
+      val_high = highByte(val);
+      val_low = lowByte(val);
+      //Serial.println(int(val_high));
+      //Serial.print(int(val_low));  
+      Serial.write(val_high);
+      Serial.write(val_low);
+    }
+
     delay(500);
   }
 }
@@ -88,3 +101,4 @@ void establishContact() {
     delay(300);
   }
 }
+
