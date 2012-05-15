@@ -80,7 +80,14 @@ int serialport = 0;  // What serial port should be used
 
 // controlP5 declarations
 ControlP5 cp5;
-Textlabel myTextLabelA;
+Button btnManual;
+Toggle togLight;
+Toggle togWrite;
+Textfield textFilename;
+Textlabel labLight;
+Textlabel labWrite;
+Button btnYes;
+Button btnNo;
 
 
 /*
@@ -111,25 +118,46 @@ public void setup() {
   cp5 = new ControlP5(this); 
 
   // Add Text box
-  cp5.addTextfield("textA", 10, 10, 300, 40)
+  textFilename =  cp5.addTextfield("textA", 10, 10, 300, 40)
     .setFont(inFont)               // Prompt User for File Name to save temperature data to
       .setAutoClear(false);          // Do not clear the screen after entering text.
 
   // Add manual button
-  cp5.addButton("manual", 1, 10, 51, 150, 30);
+  btnManual = cp5.addButton("manual", 1, 10, 51, 150, 30);
 
   // Add Light On/Off Toggle
-  cp5.addToggle("LightONOFF")
-    .setPosition(300, 300)
+  togLight = cp5.addToggle("light")
+    .setPosition(300, 50)
       .setSize(50, 20)
-        .setValue(false)
+        //.setState(false)
+          .setMode(ControlP5.SWITCH)
+            .setVisible(false);
+  // Add Write to File Toggle
+  togWrite = cp5.addToggle("write2File")
+    .setPosition(300, 90)
+      .setSize(50, 20)
+        //.setState(false)
           .setMode(ControlP5.SWITCH)
             .setVisible(false);
 
+  // Add Light On/Off State Indicator
+  labLight = cp5.addTextlabel("lighton")
+    .setText("OFF")
+      .setPosition(355, 55)
+        .setColorValue(0xffffff00)
+          .setVisible(false);
+
+  // Add Write On/Off State Indicator
+  labWrite = cp5.addTextlabel("write")
+    .setText("OFF")
+      .setPosition(355, 97)
+        .setColorValue(0xffffff00)
+          .setVisible(false);
+
   // create Message with Yes/No Buttons
-  cp5.addButton("yes", 1, 10, 150, 190, 100)
+  btnYes = cp5.addButton("yes", 1, 10, 150, 190, 100)
     .setVisible(false);
-  cp5.addButton("no", 1, 200, 150, 190, 100)
+  btnNo = cp5.addButton("no", 1, 200, 150, 190, 100)
     .setVisible(false);
 
   println(Serial.list());          // Print a list of the serial ports, for debugging purposes:
@@ -194,6 +222,7 @@ public void draw() {
 
     if (manualMode == true) {
       //Average Thermometer Readings...
+      clipboardCheck();
     }
     else if (manualMode == false) {
       clipboardCheck();
@@ -269,12 +298,19 @@ public void clipboardCheck() {
     /* Begin Writing Temp Data to File */
     file.println(volt2temp(volt) + "\t" + volt);     // If Start Signal "X" has been recieved write 
     // Value of temp and volt (from arduino) to File
-    lightOn();
+    if (manualMode == false) {
+      lightOn();
+      write2File(true);
+    }
   } 
   else if (clipped.equals("Y")) {
     file.flush();                      // Writes the remaining data to the file
     file.close();                      // Finishes the file
-    lightOff();
+    if (manualMode == false) {
+      lightOff();
+      write2File(false);
+    }
+    
     // Add some notification so we know this is not happening by accident
     delay(500);
     myPort.stop();                      // Stop Serial Communication to Arduino
@@ -294,11 +330,19 @@ public void clipboardCheck() {
  */
 void lightOn() {
   myPort.write('B');                   // Send signal (To Arduino) to turn on light
+  labLight.setText("ON");
+  if (togLight.getState() == false) {
+    togLight.setState(true);
+  }
 }
 /*  LIGHTOFF
  */
 void lightOff() {
   myPort.write('Z');                 // Send signal (To Arduino) to turn off light
+  labLight.setText("OFF");
+  if (togLight.getState() == true) {
+    togLight.setState(false);
+  }
 }
 
 /*  VOLT2TEMP
@@ -340,7 +384,11 @@ void entermanualMode() {
     gotName = false;
 
     // show textfield that was hidden
-    cp5.controller("textA").setVisible(true);
+    textFilename.setVisible(true);
+    togLight.setVisible(false);
+    togWrite.setVisible(false);
+    labLight.setVisible(false);
+    labWrite.setVisible(false);
   }
 }
 
@@ -380,11 +428,15 @@ public void manual(int theValue) {
 
   // Make sure the user wants to do this. (Should do this with MultiThreading in the Future)
   if (manualMode == false) {
-    cp5.controller("yes").setVisible(true);
-    cp5.controller("no").setVisible(true);
-    cp5.controller("textA").setVisible(false);
-    cp5.controller("manual").setVisible(false);
-    cp5.controller("LightONOFF").setVisible(false);
+    btnYes.setVisible(true);
+    btnNo.setVisible(true);
+    textFilename.setVisible(false);
+    btnManual.setVisible(false);
+    togLight.setVisible(false);
+    togWrite.setVisible(false);
+    labLight.setVisible(false);
+    labWrite.setVisible(false);
+
     ask = true;
   } 
   else {
@@ -396,30 +448,50 @@ void yes(int theValue) {
   boolean manualConfirm = true;
   ask = false;
   entermanualMode();
-  cp5.controller("yes").setVisible(false);
-  cp5.controller("no").setVisible(false);
-  cp5.controller("manual").setVisible(true);
-  cp5.controller("LightONOFF").setVisible(true);
+  btnYes.setVisible(false);
+  btnNo.setVisible(false);
+  btnManual.setVisible(true);
+  togLight.setVisible(true);
+  togWrite.setVisible(true);
+  labLight.setVisible(true);
+  labWrite.setVisible(true);
 }
 
 void no(int theValue) {
   boolean manualConfirm = false;
   ask = false;
-  cp5.controller("yes").setVisible(false);
-  cp5.controller("no").setVisible(false);
-  cp5.controller("manual").setVisible(true);
-  cp5.controller("textA").setVisible(true);
-  cp5.controller("LightONOFF").setVisible(true);
+  btnYes.setVisible(false);
+  btnNo.setVisible(false);
+  btnManual.setVisible(true);
+  textFilename.setVisible(true);
+  togLight.setVisible(false);
+  togWrite.setVisible(false);
+  labLight.setVisible(false);
+  labWrite.setVisible(false);
 }
 
 
-void LightONOFF(boolean toggleValue) {
+void light(boolean toggleValue) {
   if (toggleValue == true) {
     lightOn();
-  } else if (toggleValue == false) {
+    println("lighton!");
+  } 
+  else {
     lightOff();
+    println("lightoff!");
   }
 }
 
-
+void write2File(boolean toggleValue) {
+  if (toggleValue == true) {
+    cp.copyString("X");                    // Replace contents of Clipboard with "X"
+    labWrite.setText("ON");
+    println("writeon!");
+  } 
+  else if (toggleValue == false) {
+    cp.copyString("Y");                    // Replace contents of Clipboard with "Y"
+    labWrite.setText("OFF");
+    println("writeOFF!");
+  }
+}
 
