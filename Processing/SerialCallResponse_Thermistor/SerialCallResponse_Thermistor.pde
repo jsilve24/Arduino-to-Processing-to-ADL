@@ -1,5 +1,5 @@
 //Add Error of Temp to output
-//Double Check Calibration of Thermistor
+//Double Check manual of Thermistor
 
 // Modified from http://arduino.cc/en/Tutorial/SerialCallResponse
 /*
@@ -62,20 +62,29 @@ boolean gotName = false;      // Has a valid filename been entered?
 
 float temp;                   // the temperature converted from voltage
 // measured in celcius
-boolean calibrationMode = false;  // are we in calibration mode? (Calibration mode averages 
+boolean manualMode = false;  // are we in manual mode? (manual mode averages 
 // temperature measurements according to intAveTemp;
 int intAveTemp;                // number of temperature readings to average during
-// calibration of thermistor
+// manual of thermistor
 
-boolean calibConfirm = false; // are you sure you want to enter calibration mode?
-boolean calibAnswer = false;  // has the user answered the question and given a value to calibConfirm?
+boolean manualConfirm = false; // are you sure you want to enter manual mode?
+boolean manualAnswer = false;  // has the user answered the question and given a value to manualConfirm?
 boolean ask = false;          // do we need to prompt the user for input?
 
-ArrayList<Integer> graph;             // create an ArrayList to handle graph values and easily implement a queue. 
-int dataLength;             // Temporarily hold graph point
+ArrayList<Integer> graph;     // create an ArrayList to handle graph values and easily implement a queue. 
+int dataLength;               // Temporarily hold graph point
+
+// Identify Operating System
+String OSname = System.getProperty("os.name");
+int serialport = 0;  // What serial port should be used
+
+// controlP5 declarations
+ControlP5 cp5;
+Textlabel myTextLabelA;
+
 
 /*
- Global Constants
+ manual Constants
  */
 
 final double x3 = -8.8608;
@@ -87,15 +96,9 @@ final double x0 = 409.0631;
 
 
 
-// Identify Operating System
-String OSname = System.getProperty("os.name");
-int serialport = 0;  // What serial port should be used
-
-// controlP5 declarations
-ControlP5 cp5;
-Textlabel myTextLabelA;
-
+/****************************/
 /****  BEGIN SETUP/DRAW  ****/
+/****************************/
 
 public void setup() {
   size(400, 400);                    // Display Window size
@@ -104,16 +107,24 @@ public void setup() {
   fontMessage = loadFont("Dialog-18.vlw");  // create font for user prompt messages. 
   inFont = createFont("arial", 20);   // See Above listed Font
 
-  // create gui
+  // Create GUI
   cp5 = new ControlP5(this); 
 
-  // add text box
+  // Add Text box
   cp5.addTextfield("textA", 10, 10, 300, 40)
     .setFont(inFont)               // Prompt User for File Name to save temperature data to
       .setAutoClear(false);          // Do not clear the screen after entering text.
 
-  // add calibration button
-  cp5.addButton("calibrate", 1, 10, 51, 150, 30);
+  // Add manual button
+  cp5.addButton("manual", 1, 10, 51, 150, 30);
+
+  // Add Light On/Off Toggle
+  cp5.addToggle("LightONOFF")
+    .setPosition(300, 300)
+      .setSize(50, 20)
+        .setValue(false)
+          .setMode(ControlP5.SWITCH)
+            .setVisible(false);
 
   // create Message with Yes/No Buttons
   cp5.addButton("yes", 1, 10, 150, 190, 100)
@@ -138,9 +149,9 @@ public void setup() {
   // This scheme is an object "myPort" 
   // Should Get Filename from ADL
   cp.copyString("Not X");                    // Replace contents of Clipboard with "Not X"
-  
+
   // Instantiate Linked list for Graph
-  graph = new ArrayList<Integer>(Collections.nCopies(200,0));
+  graph = new ArrayList<Integer>(Collections.nCopies(200, 0));
 }
 
 
@@ -156,14 +167,12 @@ public void draw() {
   } 
 
   if (ask == true) {
-    println("in ask==true");
     background (0);
 
     /* Print message to Window */
     textFont(fontMessage, 18);  
     fill (255);
     textAlign(CENTER);
-    println("here");
     text("Are you sure?", width/2, 20);
   } 
   else {  
@@ -174,19 +183,19 @@ public void draw() {
     textAlign(CENTER);
     voltVal = nf(volt, 1, 3);
     text(voltVal + " V", width/2, 200);
-    
-    
+
+
     // Draw Graph (each line stored in ArrayList graph.
     stroke(127, 34, 255);             // draw this line
     for (int i = graph.size(); i>0; i--) {
       line(i*2, height, i*2, height - graph.get(i - 1));
     }
-  
 
-    if (calibrationMode == true) {
+
+    if (manualMode == true) {
       //Average Thermometer Readings...
     }
-    else if (calibrationMode == false) {
+    else if (manualMode == false) {
       clipboardCheck();
 
       //Add File Extension Text Label
@@ -236,7 +245,7 @@ void serialEvent(Serial myport) {
 
       graph.remove(0);
       graph.add(dataLength);
-      
+
 
       myPort.write('A');                // Send a capital A to request new sensor readings:   
       serialCount = 0;                  // Reset serialCount:
@@ -247,9 +256,9 @@ void serialEvent(Serial myport) {
 
 
 
-/****************************/
-/****  CUSTOM FUNCTIONS  ****/
-/****************************/
+/*******************************/
+/****  CLIPBOARD FUNCTIONS  ****/
+/*******************************/
 
 public void clipboardCheck() {
   /* Clipboard Operations */
@@ -260,12 +269,12 @@ public void clipboardCheck() {
     /* Begin Writing Temp Data to File */
     file.println(volt2temp(volt) + "\t" + volt);     // If Start Signal "X" has been recieved write 
     // Value of temp and volt (from arduino) to File
-    myPort.write('B');                   // Send signal (To Arduino) to turn on light
+    lightOn();
   } 
   else if (clipped.equals("Y")) {
     file.flush();                      // Writes the remaining data to the file
     file.close();                      // Finishes the file
-    myPort.write('Z');                 // Send signal (To Arduino) to turn off light
+    lightOff();
     // Add some notification so we know this is not happening by accident
     delay(500);
     myPort.stop();                      // Stop Serial Communication to Arduino
@@ -277,16 +286,73 @@ public void clipboardCheck() {
 }
 
 
+/*******************************/
+/****  CUSTOM FUNCTIONS  *******/
+/*******************************/
+
+/*  LIGHTON
+ */
+void lightOn() {
+  myPort.write('B');                   // Send signal (To Arduino) to turn on light
+}
+/*  LIGHTOFF
+ */
+void lightOff() {
+  myPort.write('Z');                 // Send signal (To Arduino) to turn off light
+}
+
+/*  VOLT2TEMP
+ */
 public double volt2temp(float v) {
   double temp;
   temp = x3 * pow(v, 3) + x2 * pow(v, 2) + x1 * v + x0;
   return temp;
 }
 
+
+/*  MAPDOUBLE
+ Change the range of x from range in_min to in_max
+ to out_min to out_max
+ */
+float mapDouble(float x, float in_min, float in_max, float out_min, float out_max) {
+  float result;
+  result = (x-in_min)*(out_max - out_min)/(in_max -in_min) +out_min;
+  return result;
+}
+
+
+/*  ENTERMANUALMODE
+ */
+
+void entermanualMode() {
+  // Properly adjust boolean manualMode
+  if (manualMode == false) {
+    manualMode = true;
+
+    // pretend a filename as been entered but just skip creating it.
+    gotName = true;
+
+    // hide input textfield
+    cp5.controller("textA").setVisible(false);
+  } 
+  else {
+    manualMode = false;
+    gotName = false;
+
+    // show textfield that was hidden
+    cp5.controller("textA").setVisible(true);
+  }
+}
+
+
+/*******************************/
+/****  GUI FUNCTIONS  ****/
+/*******************************/
+
 // for every change (a textfield event confirmed with a return) in textfield textA,
 // function textA will be invoked
 void textA(String theValue) {
-  println("### got an event from textA : "+theValue);
+  //println("### got an event from textA : "+theValue);
   fileName = theValue;
   gotName = true;
   file = createWriter("C:\\Documents and Settings\\Lecomte Lab\\Desktop\\Justin Silverman\\DATA\\" +fileName + ".dat");          // Create file to write to write to at defined
@@ -307,74 +373,53 @@ void textA(String theValue) {
   file.println("# Celcius \t Volts");
 }
 
-// actions to be executed when the calibration button is clicked.
-public void calibrate(int theValue) {
-  calibAnswer = false;
-  calibConfirm = false;
-
-  println("calibrationMode = " + calibrationMode); 
+// actions to be executed when the manual button is clicked.
+public void manual(int theValue) {
+  manualAnswer = false;
+  manualConfirm = false; 
 
   // Make sure the user wants to do this. (Should do this with MultiThreading in the Future)
-  if (calibrationMode == false) {
+  if (manualMode == false) {
     cp5.controller("yes").setVisible(true);
     cp5.controller("no").setVisible(true);
     cp5.controller("textA").setVisible(false);
-    cp5.controller("calibrate").setVisible(false);
+    cp5.controller("manual").setVisible(false);
+    cp5.controller("LightONOFF").setVisible(false);
     ask = true;
   } 
   else {
-    enterCalibrationMode();
+    entermanualMode();
   }
 }
 
 void yes(int theValue) {
-  boolean calibConfirm = true;
+  boolean manualConfirm = true;
   ask = false;
-  enterCalibrationMode();
+  entermanualMode();
   cp5.controller("yes").setVisible(false);
   cp5.controller("no").setVisible(false);
-  cp5.controller("calibrate").setVisible(true);
+  cp5.controller("manual").setVisible(true);
+  cp5.controller("LightONOFF").setVisible(true);
 }
 
 void no(int theValue) {
-  boolean calibConfirm = false;
+  boolean manualConfirm = false;
   ask = false;
   cp5.controller("yes").setVisible(false);
   cp5.controller("no").setVisible(false);
-  cp5.controller("calibrate").setVisible(true);
+  cp5.controller("manual").setVisible(true);
   cp5.controller("textA").setVisible(true);
+  cp5.controller("LightONOFF").setVisible(true);
 }
 
 
-void enterCalibrationMode() {
-  // Properly adjust boolean calibrationMode
-  if (calibrationMode == false) {
-    calibrationMode = true;
-
-    // pretend a filename as been entered but just skip creating it.
-    gotName = true;
-
-    // hide input textfield
-    cp5.controller("textA").setVisible(false);
-  } 
-  else {
-    calibrationMode = false;
-    gotName = false;
-
-    // show textfield that was hidden
-    cp5.controller("textA").setVisible(true);
+void LightONOFF(boolean toggleValue) {
+  if (toggleValue == true) {
+    lightOn();
+  } else if (toggleValue == false) {
+    lightOff();
   }
 }
 
 
-
-/*  MAPDOUBLE
- Change the range of x from range in_min to in_max
- to out_min to out_max
- */
-float mapDouble(float x, float in_min, float in_max, float out_min, float out_max) {
-  float result;
-  result = (x-in_min)*(out_max - out_min)/(in_max -in_min) +out_min;
-  return result;
-}
 
