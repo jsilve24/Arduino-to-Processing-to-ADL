@@ -1,4 +1,4 @@
-// Modified from http://arduino.cc/en/Tutorial/SerialCallResponse
+ // Modified from http://arduino.cc/en/Tutorial/SerialCallResponse
 /*
   Serial Call and Response
  Language: Wiring/Arduino
@@ -73,12 +73,21 @@ void loop() {
       // transmitting data over serial
     }
 
-    val = analogRead(SENSOR);
-    ave[numAve] = val;
-    numAve++;
+    while (numAve <3) {
+      collectData();
+      delay(300);
+      //Serial.println("numAve <3");
+    }
     
     if (numAve == 3) {
-      val = (ave[1]+ave[2]+ave[3])/3.0;
+      //Serial.println("ave[0] = " + String(ave[0]));
+      //Serial.println("ave[1] = " + String(ave[1]));
+      //Serial.println("ave[2] = " + String(ave[2]));
+      
+      val = (ave[0]+ave[1]+ave[2])/3.0;
+      
+      //Serial.println("valave = " + String(val));
+      
       // Should I also send the standard deviation of these measurements?
       // What about changing the number of measurements that are averaged?
       numAve = 0;
@@ -91,8 +100,17 @@ void loop() {
       Serial.write(val_low);
     }
 
-    delay(500);
+    delay(300);
   }
+}
+
+
+void collectData() {
+  val = analogRead(SENSOR);
+  
+  //Serial.println("val = " + String(val));
+  ave[numAve] = val;
+  numAve++;
 }
 
 void establishContact() {
