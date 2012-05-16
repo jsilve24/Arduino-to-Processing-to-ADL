@@ -334,6 +334,9 @@ void lightOn() {
   if (togLight.getState() == false) {
     togLight.setState(true);
   }
+  if (togWrite.getState() == true) {
+    file.println("# Light ON");
+  }
 }
 /*  LIGHTOFF
  */
@@ -342,6 +345,9 @@ void lightOff() {
   labLight.setText("OFF");
   if (togLight.getState() == true) {
     togLight.setState(false);
+  }
+  if (togWrite.getState() == true) {
+    file.println("# Light OFF");
   }
 }
 
