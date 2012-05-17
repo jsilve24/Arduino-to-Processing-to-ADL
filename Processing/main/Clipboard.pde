@@ -10,7 +10,7 @@
 import java.awt.datatransfer.*;
 import java.awt.Toolkit; 
 
-ClipHelper cp = new ClipHelper();
+ClipHelper cp = new ClipHelper();  // Should I move this to SerialCallResponse_thermistor for clarity?
 
 class ClipHelper {
   Clipboard clipboard;
