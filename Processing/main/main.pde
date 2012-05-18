@@ -146,7 +146,6 @@ public void draw() {
     voltVal = nf(volt, 1, 3);
     text(voltVal + " V", width/2, 200);
 
-    graph.pushVal(150);
     graph.drawGraph();        // Draw Graph (each line stored in ArrayList in Graph Object.)
 
 
@@ -165,6 +164,8 @@ public void draw() {
 /*******************************/
 
 void serialEvent(Serial myport) {
+  println("in SerialEvent();");
+  
   int inByte = myPort.read();          // read a byte from the serial port
   // if this is the first byte received, and it's an A,
   // clear the serial buffer and note that you've
@@ -182,23 +183,30 @@ void serialEvent(Serial myport) {
     // Add the latest byte from the serial port to array:
     serialInArray[serialCount] = inByte;
     serialCount++;
-
+    // println("SerialCount = " +serialCount);      // For Debugging
     if (serialCount > 1) {             // if we have 2 byte:
       val_high = serialInArray[0];     // The byte that was recieved first 
       // is the first 8 bits of val
       val_low = serialInArray[1];      // The byte that was recieved second
       // is the second 8 bits of val
+      
+      // println("val_high = " + val_high + "val_low = " + val_low);     // For Debugging
+      
       val = val_high << 8 | val_low;   // Place the first 8 bits in val_high 
-      // before the last 8 bits in val_low
-      // to make val
-      //println(int(val));             // For Debugging Purposes
+                                        // before the last 8 bits in val_low
+                                        // to make val
+     
+      //println(int(val));             // For Debugging 
+      
       volt = mapDouble(val, 0, 1023, 0.00, 5.00); //Change the range of val from 0-1023
-      // to 0.00-5.00 to be a meaningful quantity (voltage)
-
+                                                  // to 0.00-5.00 to be a meaningful quantity (voltage)
+      // println(volt);      // For Debugging
+      
+     
       graph.pushVal((int) map(inByte, 0, 1023, 0, height));  // Add Corresponding value to graph object
 
 
-        myPort.write('A');                // Send a capital A to request new sensor readings:   
+      myPort.write('A');                // Send a capital A to request new sensor readings:   
       serialCount = 0;                  // Reset serialCount:
     }
   }
@@ -225,7 +233,6 @@ public void clipboardCheck() {
     catch (NullPointerException ex) {   // no data to write to file... 
       println("Cannot write to file, no data to write.");
     }
-    println("here");
 
     // Value of temp and volt (from arduino) to File
     if (gui.getManualMode() == false) {

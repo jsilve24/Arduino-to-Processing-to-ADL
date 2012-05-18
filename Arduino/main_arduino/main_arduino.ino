@@ -80,24 +80,26 @@ void loop() {
     }
     
     if (numAve == 3) {
-      //Serial.println("ave[0] = " + String(ave[0]));
-      //Serial.println("ave[1] = " + String(ave[1]));
-      //Serial.println("ave[2] = " + String(ave[2]));
+      //Serial.println("ave[0] = " + String(ave[0]));     // For Debugging
+      //Serial.println("ave[1] = " + String(ave[1]));     // For Debugging
+      //Serial.println("ave[2] = " + String(ave[2]));     // For Debugging
       
       val = (ave[0]+ave[1]+ave[2])/3.0;
+      //Serial.println(val);
       
       //Serial.println("valave = " + String(val));
       
       // Should I also send the standard deviation of these measurements?
       // What about changing the number of measurements that are averaged?
-      numAve = 0;
       
       val_high = highByte(val);
       val_low = lowByte(val);
-      //Serial.println(int(val_high));
-      //Serial.print(int(val_low));  
+      //Serial.println(int(val_high));  // For Debugging
+      //Serial.print(int(val_low));     // For Debugging
       Serial.write(val_high);
       Serial.write(val_low);
+      
+      numAve = 0; // reset counter
     }
 
     delay(300);
